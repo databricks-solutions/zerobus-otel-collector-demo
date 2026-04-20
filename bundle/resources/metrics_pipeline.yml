@@ -1,0 +1,14 @@
+resources:
+  pipelines:
+    metrics_silver:
+      name: ${bundle.name}_metrics_silver
+      serverless: true
+      catalog: ${resources.schemas.dest_schema.catalog_name}
+      target: ${resources.schemas.dest_schema.name}
+      libraries:
+        - notebook:
+            path: ../src/otel_metrics_silver.ipynb
+      configuration:
+        source_catalog: ${var.source_catalog}
+        source_schema: ${var.source_schema}
+        table_prefix: ${var.table_prefix}
