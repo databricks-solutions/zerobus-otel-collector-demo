@@ -3,3 +3,13 @@
 __pycache__
 .idea/
 .env
+
+**/*.tfstate.*
+**/*.tfstate
+**/.terraform
+**/.terraform.lock.hcl
+**/local.auto.tfvars
+.envrc
+.claude
+CLAUDE.md
+blog/
