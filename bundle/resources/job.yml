@@ -1,0 +1,13 @@
+resources:
+  jobs:
+    initialize:
+      name: ${bundle.name}_initialize
+      parameters:
+        - name: catalog
+          default: ${var.source_catalog}
+        - name: schema
+          default: ${var.source_schema}
+      tasks:
+        - task_key: create_tables
+          notebook_task:
+            notebook_path: ../src/create_otel_tables.ipynb
