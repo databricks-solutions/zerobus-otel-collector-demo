@@ -1,0 +1,164 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family:
+    'Inter',
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #0a0d14;
+  color: #e5e7eb;
+}
+
+html.light body {
+  background: #fafafa;
+  color: #111827;
+}
+
+/* Ambient gradient applied at root for the dark theme — adds depth without
+   pulling focus from foreground content. */
+.app-bg {
+  background-image:
+    radial-gradient(ellipse at top left, rgba(59, 130, 246, 0.07), transparent 55%),
+    radial-gradient(ellipse at top right, rgba(139, 92, 246, 0.06), transparent 55%),
+    radial-gradient(ellipse at bottom, rgba(16, 185, 129, 0.04), transparent 60%);
+}
+html.light .app-bg {
+  background-image:
+    radial-gradient(ellipse at top left, rgba(59, 130, 246, 0.06), transparent 55%),
+    radial-gradient(ellipse at top right, rgba(139, 92, 246, 0.05), transparent 55%);
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #1f2538;
+  border-radius: 6px;
+}
+html.light ::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2c3450;
+}
+
+@layer components {
+  .panel {
+    @apply rounded-xl border border-surface-3/70 bg-surface-1/70 backdrop-blur
+           shadow-[0_1px_0_0_rgba(255,255,255,0.03)_inset,0_24px_48px_-20px_rgba(0,0,0,0.55)]
+           transition-shadow duration-200;
+  }
+  .panel:hover {
+    @apply shadow-[0_1px_0_0_rgba(255,255,255,0.04)_inset,0_28px_56px_-20px_rgba(0,0,0,0.6)];
+  }
+  html.light .panel {
+    @apply border-zinc-200 bg-white shadow-sm;
+  }
+  html.light .panel:hover {
+    @apply shadow-md;
+  }
+
+  .stat-card {
+    @apply panel p-5 flex flex-col gap-1.5 relative overflow-hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.018) 0%,
+      transparent 50%
+    );
+    pointer-events: none;
+  }
+  .stat-label {
+    @apply text-[10.5px] uppercase tracking-[0.08em] text-zinc-500 font-medium;
+  }
+  .stat-value {
+    @apply text-[28px] font-semibold tabular-nums tracking-tight leading-none mt-0.5;
+  }
+  .stat-sub {
+    @apply text-[11px] text-zinc-500 font-mono mt-1;
+  }
+
+  .mono {
+    @apply font-mono text-[12.5px];
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10.5px]
+           font-mono uppercase tracking-wider border;
+  }
+  .badge-fatal {
+    @apply bg-rose-600/15 text-rose-300 border-rose-500/30;
+  }
+  .badge-error {
+    @apply bg-red-500/15 text-red-300 border-red-500/30;
+  }
+  .badge-warn {
+    @apply bg-amber-500/15 text-amber-300 border-amber-500/30;
+  }
+  .badge-info {
+    @apply bg-blue-500/15 text-blue-300 border-blue-500/30;
+  }
+  .badge-trace {
+    @apply bg-violet-500/15 text-violet-300 border-violet-500/30;
+  }
+  .badge-unclassified {
+    @apply bg-zinc-500/15 text-zinc-300 border-zinc-500/30;
+  }
+
+  html.light .badge-fatal {
+    @apply bg-rose-50 text-rose-700 border-rose-200;
+  }
+  html.light .badge-error {
+    @apply bg-red-50 text-red-700 border-red-200;
+  }
+  html.light .badge-warn {
+    @apply bg-amber-50 text-amber-700 border-amber-200;
+  }
+  html.light .badge-info {
+    @apply bg-blue-50 text-blue-700 border-blue-200;
+  }
+  html.light .badge-trace {
+    @apply bg-violet-50 text-violet-700 border-violet-200;
+  }
+  html.light .badge-unclassified {
+    @apply bg-zinc-100 text-zinc-700 border-zinc-200;
+  }
+}
+
+/* Recharts tooltip in dark mode */
+.recharts-default-tooltip {
+  background-color: #0f1320 !important;
+  border: 1px solid #1f2538 !important;
+  border-radius: 8px !important;
+}
+html.light .recharts-default-tooltip {
+  background-color: #ffffff !important;
+  border: 1px solid #e4e4e7 !important;
+}

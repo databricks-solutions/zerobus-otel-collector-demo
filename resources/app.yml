@@ -1,0 +1,72 @@
+resources:
+  apps:
+    otel_observability:
+      name: ${var.app_name}
+      description: Kubernetes telemetry dashboards & assistant.
+      source_code_path: ${workspace.file_path}/app
+      # Note: command and env vars come from `app/app.yaml` in the source.
+      # Databricks Apps reads that file at runtime; this resource block's
+      # `config` field is silently ignored by the Direct deploy engine.
+
+      # Resources auto-grant the app's service principal the required permission.
+      resources:
+        - name: warehouse
+          description: SQL warehouse used for dashboard queries
+          sql_warehouse:
+            id: ${var.warehouse_id}
+            permission: CAN_USE
+
+        - name: genie_space
+          description: Genie space for the in-app assistant
+          genie_space:
+            name: ${var.app_name}_genie
+            space_id: ${var.genie_space_id}
+            permission: CAN_RUN
+
+        - name: logs_flattened
+          uc_securable:
+            securable_full_name: ${var.dest_catalog}.${var.app_otel_schema}.logs_flattened
+            securable_type: TABLE
+            permission: SELECT
+
+        - name: logs_errors
+          uc_securable:
+            securable_full_name: ${var.dest_catalog}.${var.app_otel_schema}.logs_errors
+            securable_type: TABLE
+            permission: SELECT
+
+        - name: logs_coredns_parsed
+          uc_securable:
+            securable_full_name: ${var.dest_catalog}.${var.app_otel_schema}.logs_coredns_parsed
+            securable_type: TABLE
+            permission: SELECT
+
+        - name: pod_compute
+          uc_securable:
+            securable_full_name: ${var.dest_catalog}.${var.app_otel_schema}.pod_compute
+            securable_type: TABLE
+            permission: SELECT
+
+        - name: container_resource_spec
+          uc_securable:
+            securable_full_name: ${var.dest_catalog}.${var.app_otel_schema}.container_resource_spec
+            securable_type: TABLE
+            permission: SELECT
+
+        - name: node_capacity_estimated
+          uc_securable:
+            securable_full_name: ${var.dest_catalog}.${var.app_otel_schema}.node_capacity_estimated
+            securable_type: TABLE
+            permission: SELECT
+
+        - name: bin_packing_pod_efficiency
+          uc_securable:
+            securable_full_name: ${var.dest_catalog}.${var.app_otel_schema}.bin_packing_pod_efficiency
+            securable_type: TABLE
+            permission: SELECT
+
+        - name: bin_packing_node_summary
+          uc_securable:
+            securable_full_name: ${var.dest_catalog}.${var.app_otel_schema}.bin_packing_node_summary
+            securable_type: TABLE
+            permission: SELECT

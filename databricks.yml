@@ -1,0 +1,79 @@
+# Databricks asset bundle for the Zerobus OTel demo.
+# Defines: silver pipelines + init job + the observability app.
+# See https://docs.databricks.com/dev-tools/bundles/index.html
+bundle:
+  name: zerobus_otel_k8s_example
+  uuid: 95af4ec2-6b98-4f25-9bd7-46c73e30a633
+  engine: direct
+
+include:
+  - resources/*.yml
+
+# DABs respects .gitignore by default. The frontend's build output
+# (`app/frontend/dist`) is gitignored so it doesn't pollute the tree, but the
+# app needs it at runtime — force-include it here.
+sync:
+  include:
+    # Frontend build output — gitignored locally so devs don't pollute trees,
+    # but required at runtime so the FastAPI app can serve it.
+    - "app/frontend/dist/**"
+    # App config — gitignored because it gets generated per-deploy from bundle
+    # variables (each developer has their own warehouse / Genie space).
+    - "app/app.yaml"
+
+# --- Variables --------------------------------------------------------------
+variables:
+  # Silver pipeline inputs
+  source_catalog:
+    description: Catalog containing the bronze OTel tables
+  source_schema:
+    description: Schema containing the bronze OTel tables
+    default: otel_bronze
+  dest_catalog:
+    description: Catalog for silver pipeline output tables
+  dest_schema:
+    description: Schema for silver pipeline output tables
+    default: kubernetes_otel_silver
+  table_prefix:
+    description: Prefix used for OTel bronze tables (e.g. kubernetes_otel_logs)
+    default: kubernetes
+
+  # App configuration — pass these on the command line or in a .databrickscfg
+  # variable override file. All three are required for the app to start.
+  app_name:
+    description: Databricks App name (also used as the resource ID)
+    default: otel-observability
+  warehouse_id:
+    description: SQL warehouse ID the app uses for dashboard queries
+  genie_space_id:
+    description: Genie space ID for the in-app assistant
+  app_otel_schema:
+    description: |
+      Schema the app reads silver tables from. In dev mode the bundle prefixes
+      schemas with `<user_short>_<schema>` (e.g. dev_jane_doe_kubernetes_otel_silver).
+      In prod the schema name has no prefix. Set this to match the deployed schema.
+    default: kubernetes_otel_silver
+
+# Note: the React frontend must be built (`app/frontend/dist`) before deploy,
+# and USE_CATALOG / USE_SCHEMA must be granted to the app's SP after deploy
+# (uc_securable resources only support TABLE/FUNCTION/VOLUME/CONNECTION).
+# Both are wrapped by `scripts/deploy.sh` — use that instead of running
+# `databricks bundle deploy` directly.
+
+# --- Targets ----------------------------------------------------------------
+targets:
+  dev:
+    mode: development
+    default: true
+    variables:
+      source_catalog: otel
+      dest_catalog: otel
+      table_prefix: kubernetes
+  prod:
+    mode: production
+    workspace:
+      root_path: /Workspace/Shared/${bundle.name}
+    variables:
+      source_catalog: otel
+      dest_catalog: otel
+      table_prefix: kubernetes

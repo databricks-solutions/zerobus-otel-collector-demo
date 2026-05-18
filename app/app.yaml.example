@@ -1,0 +1,25 @@
+# Copy to app.yaml and fill in the values, OR let scripts/deploy.sh generate
+# app.yaml automatically from your bundle variables.
+#
+# Databricks Apps reads command + env from this file at runtime.
+command: ['uvicorn', 'app:app', '--host', '0.0.0.0', '--port', '8000']
+
+env:
+  # SQL warehouse ID used for dashboard queries. Find in:
+  #   SQL → SQL Warehouses → click your warehouse → copy ID from URL.
+  - name: 'DATABRICKS_WAREHOUSE_ID'
+    value: ''
+
+  # Genie space ID for the in-app assistant. Find in:
+  #   Genie → open the space → ID is in the URL after /rooms/.
+  - name: 'GENIE_SPACE_ID'
+    value: ''
+
+  # Unity Catalog catalog containing the silver tables.
+  - name: 'OTEL_CATALOG'
+    value: 'otel'
+
+  # Schema containing the silver tables. In dev mode bundle deploys prefix
+  # schemas with `dev_<user_short>_`; in prod the schema has no prefix.
+  - name: 'OTEL_SCHEMA'
+    value: 'kubernetes_otel_silver'
