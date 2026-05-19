@@ -39,11 +39,32 @@ resource "databricks_sql_table" "otel_spans" {
   comment      = "OpenTelemetry spans ingested via Zerobus"
   warehouse_id = local.databricks_warehouse_id
 
+  cluster_keys = ["time", "service_name", "trace_id"]
 
   properties = {
-    "otel.schemaVersion" = "v1"
+    "otel.schemaVersion"                     = "v2"
+    "delta.checkpointPolicy"                 = "classic"
+    "delta.enableVariantShredding"           = "true"
+    "delta.feature.variantShredding-preview" = "supported"
+    "delta.feature.variantType-preview"      = "supported"
   }
 
+  column {
+    name = "record_id"
+    type = "string"
+  }
+  column {
+    name = "time"
+    type = "timestamp"
+  }
+  column {
+    name = "date"
+    type = "date"
+  }
+  column {
+    name = "service_name"
+    type = "string"
+  }
   column {
     name = "trace_id"
     type = "string"
@@ -82,7 +103,7 @@ resource "databricks_sql_table" "otel_spans" {
   }
   column {
     name = "attributes"
-    type = "map<string,string>"
+    type = "variant"
   }
   column {
     name = "dropped_attributes_count"
@@ -91,7 +112,7 @@ resource "databricks_sql_table" "otel_spans" {
 
   column {
     name = "events"
-    type = "array<struct<time_unix_nano:bigint,name:string,attributes:map<string,string>,dropped_attributes_count:int>>"
+    type = "array<struct<time_unix_nano:bigint,name:string,attributes:variant,dropped_attributes_count:int>>"
   }
 
   column {
@@ -101,7 +122,7 @@ resource "databricks_sql_table" "otel_spans" {
 
   column {
     name = "links"
-    type = "array<struct<trace_id:string,span_id:string,trace_state:string,attributes:map<string,string>,dropped_attributes_count:int,flags:int>>"
+    type = "array<struct<trace_id:string,span_id:string,trace_state:string,attributes:variant,dropped_attributes_count:int,flags:int>>"
   }
 
   column {
@@ -116,7 +137,7 @@ resource "databricks_sql_table" "otel_spans" {
 
   column {
     name = "resource"
-    type = "struct<attributes:map<string,string>,dropped_attributes_count:int>"
+    type = "struct<attributes:variant,dropped_attributes_count:int>"
   }
 
   column {
@@ -126,7 +147,7 @@ resource "databricks_sql_table" "otel_spans" {
 
   column {
     name = "instrumentation_scope"
-    type = "struct<name:string,version:string,attributes:map<string,string>,dropped_attributes_count:int>"
+    type = "struct<name:string,version:string,attributes:variant,dropped_attributes_count:int>"
   }
 
   column {
@@ -143,10 +164,32 @@ resource "databricks_sql_table" "otel_logs" {
   comment      = "OpenTelemetry logs ingested via Zerobus"
   warehouse_id = local.databricks_warehouse_id
 
+  cluster_keys = ["time", "service_name"]
+
   properties = {
-    "otel.schemaVersion" = "v1"
+    "otel.schemaVersion"                     = "v2"
+    "delta.checkpointPolicy"                 = "classic"
+    "delta.enableVariantShredding"           = "true"
+    "delta.feature.variantShredding-preview" = "supported"
+    "delta.feature.variantType-preview"      = "supported"
   }
 
+  column {
+    name = "record_id"
+    type = "string"
+  }
+  column {
+    name = "time"
+    type = "timestamp"
+  }
+  column {
+    name = "date"
+    type = "date"
+  }
+  column {
+    name = "service_name"
+    type = "string"
+  }
   column {
     name = "event_name"
     type = "string"
@@ -177,11 +220,11 @@ resource "databricks_sql_table" "otel_logs" {
   }
   column {
     name = "body"
-    type = "string"
+    type = "variant"
   }
   column {
     name = "attributes"
-    type = "map<string,string>"
+    type = "variant"
   }
   column {
     name = "dropped_attributes_count"
@@ -194,7 +237,7 @@ resource "databricks_sql_table" "otel_logs" {
 
   column {
     name = "resource"
-    type = "struct<attributes:map<string,string>,dropped_attributes_count:int>"
+    type = "struct<attributes:variant,dropped_attributes_count:int>"
   }
 
   column {
@@ -204,7 +247,7 @@ resource "databricks_sql_table" "otel_logs" {
 
   column {
     name = "instrumentation_scope"
-    type = "struct<name:string,version:string,attributes:map<string,string>,dropped_attributes_count:int>"
+    type = "struct<name:string,version:string,attributes:variant,dropped_attributes_count:int>"
   }
 
   column {
@@ -221,10 +264,40 @@ resource "databricks_sql_table" "otel_metrics" {
   comment      = "OpenTelemetry metrics ingested via Zerobus"
   warehouse_id = local.databricks_warehouse_id
 
+  cluster_keys = ["time", "service_name"]
+
   properties = {
-    "otel.schemaVersion" = "v1"
+    "otel.schemaVersion"                     = "v2"
+    "delta.checkpointPolicy"                 = "classic"
+    "delta.enableVariantShredding"           = "true"
+    "delta.feature.variantShredding-preview" = "supported"
+    "delta.feature.variantType-preview"      = "supported"
   }
 
+  column {
+    name = "record_id"
+    type = "string"
+  }
+  column {
+    name = "time"
+    type = "timestamp"
+  }
+  column {
+    name = "date"
+    type = "date"
+  }
+  column {
+    name = "service_name"
+    type = "string"
+  }
+  column {
+    name = "start_time_unix_nano"
+    type = "bigint"
+  }
+  column {
+    name = "time_unix_nano"
+    type = "bigint"
+  }
   column {
     name = "name"
     type = "string"
@@ -244,37 +317,37 @@ resource "databricks_sql_table" "otel_metrics" {
 
   column {
     name = "gauge"
-    type = "struct<start_time_unix_nano:bigint,time_unix_nano:bigint,value:double,exemplars:array<struct<time_unix_nano:bigint,value:double,span_id:string,trace_id:string,filtered_attributes:map<string,string>>>,attributes:map<string,string>,flags:int>"
+    type = "struct<value:double,exemplars:array<struct<time_unix_nano:bigint,value:double,span_id:string,trace_id:string,filtered_attributes:variant>>,attributes:variant,flags:int>"
   }
 
   column {
     name = "sum"
-    type = "struct<start_time_unix_nano:bigint,time_unix_nano:bigint,value:double,exemplars:array<struct<time_unix_nano:bigint,value:double,span_id:string,trace_id:string,filtered_attributes:map<string,string>>>,attributes:map<string,string>,flags:int,aggregation_temporality:string,is_monotonic:boolean>"
+    type = "struct<value:double,exemplars:array<struct<time_unix_nano:bigint,value:double,span_id:string,trace_id:string,filtered_attributes:variant>>,attributes:variant,flags:int,aggregation_temporality:string,is_monotonic:boolean>"
   }
 
   column {
     name = "histogram"
-    type = "struct<start_time_unix_nano:bigint,time_unix_nano:bigint,count:bigint,sum:double,bucket_counts:array<bigint>,explicit_bounds:array<double>,exemplars:array<struct<time_unix_nano:bigint,value:double,span_id:string,trace_id:string,filtered_attributes:map<string,string>>>,attributes:map<string,string>,flags:int,min:double,max:double,aggregation_temporality:string>"
+    type = "struct<count:bigint,sum:double,bucket_counts:array<bigint>,explicit_bounds:array<double>,exemplars:array<struct<time_unix_nano:bigint,value:double,span_id:string,trace_id:string,filtered_attributes:variant>>,attributes:variant,flags:int,min:double,max:double,aggregation_temporality:string>"
   }
 
   column {
     name = "exponential_histogram"
-    type = "struct<attributes:map<string,string>,start_time_unix_nano:bigint,time_unix_nano:bigint,count:bigint,sum:double,scale:int,zero_count:bigint,positive_bucket:struct<offset:int,bucket_counts:array<bigint>>,negative_bucket:struct<offset:int,bucket_counts:array<bigint>>,flags:int,exemplars:array<struct<time_unix_nano:bigint,value:double,span_id:string,trace_id:string,filtered_attributes:map<string,string>>>,min:double,max:double,zero_threshold:double,aggregation_temporality:string>"
+    type = "struct<attributes:variant,count:bigint,sum:double,scale:int,zero_count:bigint,positive_bucket:struct<offset:int,bucket_counts:array<bigint>>,negative_bucket:struct<offset:int,bucket_counts:array<bigint>>,flags:int,exemplars:array<struct<time_unix_nano:bigint,value:double,span_id:string,trace_id:string,filtered_attributes:variant>>,min:double,max:double,zero_threshold:double,aggregation_temporality:string>"
   }
 
   column {
     name = "summary"
-    type = "struct<start_time_unix_nano:bigint,time_unix_nano:bigint,count:bigint,sum:double,quantile_values:array<struct<quantile:double,value:double>>,attributes:map<string,string>,flags:int>"
+    type = "struct<count:bigint,sum:double,quantile_values:array<struct<quantile:double,value:double>>,attributes:variant,flags:int>"
   }
 
   column {
     name = "metadata"
-    type = "map<string,string>"
+    type = "variant"
   }
 
   column {
     name = "resource"
-    type = "struct<attributes:map<string,string>,dropped_attributes_count:int>"
+    type = "struct<attributes:variant,dropped_attributes_count:int>"
   }
 
   column {
@@ -284,7 +357,7 @@ resource "databricks_sql_table" "otel_metrics" {
 
   column {
     name = "instrumentation_scope"
-    type = "struct<name:string,version:string,attributes:map<string,string>,dropped_attributes_count:int>"
+    type = "struct<name:string,version:string,attributes:variant,dropped_attributes_count:int>"
   }
 
   column {
