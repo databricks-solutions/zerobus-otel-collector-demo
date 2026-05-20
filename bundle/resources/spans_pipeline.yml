@@ -3,8 +3,8 @@ resources:
     spans_silver:
       name: ${bundle.name}_spans_silver
       serverless: true
-      catalog: ${var.dest_catalog}
-      target: ${var.dest_schema}
+      catalog: ${resources.schemas.dest_schema.catalog_name}
+      target: ${resources.schemas.dest_schema.name}
       libraries:
         - notebook:
             path: ../src/otel_spans_silver.ipynb
