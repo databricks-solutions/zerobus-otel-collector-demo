@@ -6,6 +6,10 @@ bundle:
   uuid: 95af4ec2-6b98-4f25-9bd7-46c73e30a633
   engine: direct
 
+scripts:
+  frontend_build:
+    content: cd app/frontend && npm install --silent && npm run build
+
 include:
   - resources/*.yml
 
@@ -42,7 +46,6 @@ variables:
   # variable override file. All three are required for the app to start.
   app_name:
     description: Databricks App name (also used as the resource ID)
-    default: otel-observability
   warehouse_id:
     description: SQL warehouse ID the app uses for dashboard queries
   genie_space_id:
@@ -69,11 +72,13 @@ targets:
       source_catalog: otel
       dest_catalog: otel
       table_prefix: kubernetes
+      app_name: ${workspace.current_user.domain_friendly_name}-otel-demo
   prod:
     mode: production
     workspace:
-      root_path: /Workspace/Shared/${bundle.name}
+      root_path: /Workspace/${bundle.name}
     variables:
       source_catalog: otel
       dest_catalog: otel
       table_prefix: kubernetes
+      app_name: otel-demo
