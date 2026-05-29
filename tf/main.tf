@@ -9,6 +9,7 @@ data "databricks_sql_warehouse" "this" {
 
 data "databricks_current_config" "this" {}
 
+data "databricks_current_metastore" "this" {}
 
 # --- Service Principal ---
 
@@ -368,47 +369,32 @@ resource "databricks_sql_table" "otel_metrics" {
 
 # --- Unity Catalog Grants ---
 
-resource "databricks_grants" "catalog" {
-  catalog = var.zerobus_catalog
-
-  grant {
-    principal  = databricks_service_principal.zerobus.application_id
-    privileges = ["USE_CATALOG"]
-  }
+resource "databricks_grant" "catalog" {
+  catalog    = var.zerobus_catalog
+  principal  = databricks_service_principal.zerobus.application_id
+  privileges = ["USE_CATALOG"]
 }
 
-resource "databricks_grants" "schema" {
-  schema = "${var.zerobus_catalog}.${databricks_schema.otel.name}"
-
-  grant {
-    principal  = databricks_service_principal.zerobus.application_id
-    privileges = ["USE_SCHEMA"]
-  }
+resource "databricks_grant" "schema" {
+  schema     = "${var.zerobus_catalog}.${databricks_schema.otel.name}"
+  principal  = databricks_service_principal.zerobus.application_id
+  privileges = ["USE_SCHEMA"]
 }
 
-resource "databricks_grants" "otel_spans" {
-  table = "${var.zerobus_catalog}.${databricks_schema.otel.name}.${databricks_sql_table.otel_spans.name}"
-
-  grant {
-    principal  = databricks_service_principal.zerobus.application_id
-    privileges = ["SELECT", "MODIFY"]
-  }
+resource "databricks_grant" "otel_spans" {
+  table      = "${var.zerobus_catalog}.${databricks_schema.otel.name}.${databricks_sql_table.otel_spans.name}"
+  principal  = databricks_service_principal.zerobus.application_id
+  privileges = ["SELECT", "MODIFY"]
 }
 
-resource "databricks_grants" "otel_logs" {
-  table = "${var.zerobus_catalog}.${databricks_schema.otel.name}.${databricks_sql_table.otel_logs.name}"
-
-  grant {
-    principal  = databricks_service_principal.zerobus.application_id
-    privileges = ["SELECT", "MODIFY"]
-  }
+resource "databricks_grant" "otel_logs" {
+  table      = "${var.zerobus_catalog}.${databricks_schema.otel.name}.${databricks_sql_table.otel_logs.name}"
+  principal  = databricks_service_principal.zerobus.application_id
+  privileges = ["SELECT", "MODIFY"]
 }
 
-resource "databricks_grants" "otel_metrics" {
-  table = "${var.zerobus_catalog}.${databricks_schema.otel.name}.${databricks_sql_table.otel_metrics.name}"
-
-  grant {
-    principal  = databricks_service_principal.zerobus.application_id
-    privileges = ["SELECT", "MODIFY"]
-  }
+resource "databricks_grant" "otel_metrics" {
+  table      = "${var.zerobus_catalog}.${databricks_schema.otel.name}.${databricks_sql_table.otel_metrics.name}"
+  principal  = databricks_service_principal.zerobus.application_id
+  privileges = ["SELECT", "MODIFY"]
 }

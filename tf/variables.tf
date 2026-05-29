@@ -27,3 +27,14 @@ variable "warehouse_name" {
   description = "Warehouse to use for creating Unity Catalog tables"
   default     = null
 }
+
+variable "databricks_region" {
+  type        = string
+  default     = null
+  description = "Override the workspace region used for the Zerobus gRPC endpoint (e.g. us-west-2). Defaults to the current metastore's region."
+}
+
+variable "databricks_workspace_id" {
+  type        = string
+  description = "ID of the Databricks workspace"
+}
