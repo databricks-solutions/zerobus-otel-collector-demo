@@ -3,9 +3,6 @@ mode: daemonset
 image:
   repository: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-k8s
 
-#command:
-#  name: "otelcol-k8s"
-
 presets:
   hostMetrics:
     enabled: true
@@ -26,82 +23,96 @@ presets:
 service:
   enabled: true
 
-#ports:
-#  otlp:
-#    enabled: true
-#    containerPort: 4317
-#    servicePort: 4317
-#    protocol: TCP
-#  otlp-http:
-#    enabled: true
-#    containerPort: 4318
-#    servicePort: 4318
-#    protocol: TCP
+# Databricks SP credentials are mounted from a Kubernetes Secret.
+# The default secret name is "databricks-sp"; override per deployment if needed.
+# NOTE: when deployed via Terraform, this entire block is replaced by the
+# extraEnvs list assembled in helm_releases.tf. The values below are
+# illustrative — edit them there, not here.
+extraEnvs:
+  - name: DATABRICKS_CLIENT_ID
+    valueFrom:
+      secretKeyRef:
+        name: databricks-sp
+        key: client_id
+  - name: DATABRICKS_CLIENT_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: databricks-sp
+        key: client_secret
+  - name: WORKSPACE_URL
+    value: https://workspace.cloud.databricks.com
+  - name: ZEROBUS_ENDPOINT
+    value: 0.zerobus.us-west-2.cloud.databricks.com:443
+  - name: ZEROBUS_RESOURCE
+    value: api://databricks/workspaces/0/zerobusDirectWriteApi
 
+# Three named oauth2client extensions, one per signal, each scoped to a single
+# Unity Catalog table via endpoint_params.authorization_details. Token URL,
+# resource, and authorization_details must be set per deployment.
 config:
-#  receivers:
-#    filelog:
-#      operators:
-#        - id: container-parser
-#          type: container
-#          max_log_size: 102400
-#        - id: recombine-multiline
-#          type: recombine
-#          combine_field: body
-#          is_first_entry: body matches "^\\d{4}-\\d{2}-\\d{2}[T ]|^\\{|^[A-Z]+ \\d{4}|^\\[\\d{4}"
-#          max_log_size: 102400
-#          source_identifier: attributes["log.file.path"]
-#    kubeletstats:
-#      insecure_skip_verify: true
-#    otlp:
-#      protocols:
-#        grpc:
-#          endpoint: 0.0.0.0:4317
-#        http:
-#          endpoint: 0.0.0.0:4318
+  extensions:
+    oauth2client/spans:
+      client_id: ${env:DATABRICKS_CLIENT_ID}
+      client_secret: ${env:DATABRICKS_CLIENT_SECRET}
+      token_url: ${env:WORKSPACE_URL}/oidc/v1/token
+      scopes: ['all-apis']
+      endpoint_params:
+        resource: ${env:ZEROBUS_RESOURCE}
+        authorization_details:
+          - '[]'
+    oauth2client/logs:
+      client_id: ${env:DATABRICKS_CLIENT_ID}
+      client_secret: ${env:DATABRICKS_CLIENT_SECRET}
+      token_url: ${env:WORKSPACE_URL}/oidc/v1/token
+      scopes: ['all-apis']
+      endpoint_params:
+        resource: ${env:ZEROBUS_RESOURCE}
+        authorization_details:
+          - '[]'
+    oauth2client/metrics:
+      client_id: ${env:DATABRICKS_CLIENT_ID}
+      client_secret: ${env:DATABRICKS_CLIENT_SECRET}
+      token_url: ${env:WORKSPACE_URL}/oidc/v1/token
+      scopes: ['all-apis']
+      endpoint_params:
+        resource: ${env:ZEROBUS_RESOURCE}
+        authorization_details:
+          - '[]'
 
+  # Note that when using Terraform, the real endpoint values will be provided by the helm provider
   exporters:
-    otlphttp/databricks-logs:
+    otlp/databricks-spans:
+      endpoint: ${env:ZEROBUS_ENDPOINT}
       auth:
-        authenticator: oauth2client
-    otlphttp/databricks-metrics:
+        authenticator: oauth2client/spans
+      headers:
+        x-databricks-zerobus-table-name: catalog.schema.table_otel_spans
+    otlp/databricks-logs:
+      endpoint: ${env:ZEROBUS_ENDPOINT}
       auth:
-        authenticator: oauth2client
-    otlphttp/databricks-spans:
+        authenticator: oauth2client/logs
+      headers:
+        x-databricks-zerobus-table-name: catalog.schema.table_otel_logs
+    otlp/databricks-metrics:
+      endpoint: ${env:ZEROBUS_ENDPOINT}
       auth:
-        authenticator: oauth2client
+        authenticator: oauth2client/metrics
+      headers:
+        x-databricks-zerobus-table-name: catalog.schema.table_otel_metrics
 
   service:
     extensions:
       - health_check
-      - oauth2client
+      - oauth2client/spans
+      - oauth2client/logs
+      - oauth2client/metrics
     pipelines:
       logs:
-#        receivers:
-#          - filelog
-#          - otlp
-#        processors:
-#          - k8sattributes
-#          - memory_limiter
-#          - batch
         exporters:
-          - otlphttp/databricks-logs
+          - otlp/databricks-logs
       metrics:
-#        receivers:
-#          - kubeletstats
-#          - otlp
-#        processors:
-#          - k8sattributes
-#          - memory_limiter
-#          - batch
         exporters:
-          - otlphttp/databricks-metrics
+          - otlp/databricks-metrics
       traces:
-#        receivers:
-#          - otlp
-#        processors:
-#          - k8sattributes
-#          - memory_limiter
-#          - batch
         exporters:
-          - otlphttp/databricks-spans
+          - otlp/databricks-spans
