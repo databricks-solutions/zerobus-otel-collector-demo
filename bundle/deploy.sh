@@ -13,5 +13,4 @@ databricks bundle deploy --target "$TARGET" "$@"
 
 echo "==> Running silver pipelines"
 databricks bundle run logs_silver    --target "$TARGET" --no-wait "$@"
-databricks bundle run spans_silver   --target "$TARGET" --no-wait "$@"
 databricks bundle run metrics_silver --target "$TARGET" "$@"

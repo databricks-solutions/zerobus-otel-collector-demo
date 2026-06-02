@@ -1,4 +1,4 @@
-# Databricks asset bundle for the Zerobus OTel demo.
+# Declarative Automation Bundle for the Zerobus OTel demo.
 # Defines: silver pipelines + init job + the observability app.
 # See https://docs.databricks.com/dev-tools/bundles/index.html
 bundle:
