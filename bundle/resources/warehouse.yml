@@ -1,0 +1,8 @@
+resources:
+  sql_warehouses:
+    warehouse:
+      name: ${bundle.name}
+      enable_serverless_compute: true
+      cluster_size: ${var.warehouse_size}
+      max_num_clusters: 5
+      warehouse_type: PRO

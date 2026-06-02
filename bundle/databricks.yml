@@ -41,13 +41,14 @@ variables:
   table_prefix:
     description: Prefix used for OTel bronze tables (e.g. kubernetes_otel_logs)
     default: kubernetes
+  warehouse_size:
+    description: Size of the warehouse to provision for the app
+    default: "X-Small"
 
   # App configuration — pass these on the command line or in a .databrickscfg
   # variable override file. All three are required for the app to start.
   app_name:
     description: Databricks App name (also used as the resource ID)
-  warehouse_id:
-    description: SQL warehouse ID the app uses for dashboard queries
   genie_space_id:
     description: Genie space ID for the in-app assistant
   app_otel_schema:
@@ -57,11 +58,6 @@ variables:
       In prod the schema name has no prefix. Set this to match the deployed schema.
     default: kubernetes_otel_silver
 
-# Note: the React frontend must be built (`app/frontend/dist`) before deploy,
-# and USE_CATALOG / USE_SCHEMA must be granted to the app's SP after deploy
-# (uc_securable resources only support TABLE/FUNCTION/VOLUME/CONNECTION).
-# Both are wrapped by `scripts/deploy.sh` — use that instead of running
-# `databricks bundle deploy` directly.
 
 # --- Targets ----------------------------------------------------------------
 targets:
