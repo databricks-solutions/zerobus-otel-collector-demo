@@ -156,3 +156,23 @@ Databricks support doesn't cover this content. For questions or bugs, please ope
 
 | library | description | license | source |
 |---|---|---|---|
+| [OpenTelemetry Collector Helm chart](https://github.com/open-telemetry/opentelemetry-helm-charts) | Kubernetes deployment of the OTel Collector | Apache-2.0 | https://github.com/open-telemetry/opentelemetry-helm-charts |
+| [OpenTelemetry Demo Helm chart](https://github.com/open-telemetry/opentelemetry-demo) | Sample microservices app for demo traffic | Apache-2.0 | https://github.com/open-telemetry/opentelemetry-demo |
+| [Terraform](https://github.com/hashicorp/terraform) | Infrastructure provisioning | BUSL-1.1 | https://github.com/hashicorp/terraform |
+| [hashicorp/helm provider](https://github.com/hashicorp/terraform-provider-helm) | Terraform Helm provider | MPL-2.0 | https://github.com/hashicorp/terraform-provider-helm |
+| [hashicorp/kubernetes provider](https://github.com/hashicorp/terraform-provider-kubernetes) | Terraform Kubernetes provider | MPL-2.0 | https://github.com/hashicorp/terraform-provider-kubernetes |
+| [databricks/databricks provider](https://github.com/databricks/terraform-provider-databricks) | Terraform Databricks provider | Apache-2.0 | https://github.com/databricks/terraform-provider-databricks |
+| [FastAPI](https://github.com/fastapi/fastapi) | App backend framework | MIT | https://github.com/fastapi/fastapi |
+| [Uvicorn](https://github.com/encode/uvicorn) | ASGI server | BSD-3-Clause | https://github.com/encode/uvicorn |
+| [httpx](https://github.com/encode/httpx) | HTTP client | BSD-3-Clause | https://github.com/encode/httpx |
+| [Pydantic](https://github.com/pydantic/pydantic) | Data validation | MIT | https://github.com/pydantic/pydantic |
+| [python-dotenv](https://github.com/theskumar/python-dotenv) | `.env` loading | BSD-3-Clause | https://github.com/theskumar/python-dotenv |
+| [Databricks SDK for Python](https://github.com/databricks/databricks-sdk-py) | Databricks API client | Apache-2.0 | https://github.com/databricks/databricks-sdk-py |
+| [React](https://github.com/facebook/react) | Frontend framework | MIT | https://github.com/facebook/react |
+| [Vite](https://github.com/vitejs/vite) | Frontend build tool | MIT | https://github.com/vitejs/vite |
+| [Tailwind CSS](https://github.com/tailwindlabs/tailwindcss) | CSS framework | MIT | https://github.com/tailwindlabs/tailwindcss |
+| [Radix UI](https://github.com/radix-ui/primitives) | Headless UI primitives | MIT | https://github.com/radix-ui/primitives |
+| [Recharts](https://github.com/recharts/recharts) | Charting library | MIT | https://github.com/recharts/recharts |
+| [Lucide](https://github.com/lucide-icons/lucide) | Icon set | ISC | https://github.com/lucide-icons/lucide |
+| [react-markdown](https://github.com/remarkjs/react-markdown) | Markdown rendering | MIT | https://github.com/remarkjs/react-markdown |
+| [react-syntax-highlighter](https://github.com/react-syntax-highlighter/react-syntax-highlighter) | Code highlighting | MIT | https://github.com/react-syntax-highlighter/react-syntax-highlighter |
