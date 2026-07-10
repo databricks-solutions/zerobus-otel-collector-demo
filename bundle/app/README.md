@@ -102,32 +102,72 @@ databricks apps deploy otel-observability \
 
 Then in **Compute → Apps → otel-observability → Edit**:
 
-1. **Add resource → SQL Warehouse** — pick your warehouse, permission **Can use**.
-2. **Add resource → Genie Space** — pick the OTel Genie space, permission **Can run**.
-3. **Environment variables**:
+1. **User authorization** — add the `sql` and `dashboards.genie` scopes (requires a
+   workspace admin to have enabled the user authorization preview first; see the next
+   section). The app needs no SQL Warehouse or Genie Space **resources** — all data
+   access happens as the signed-in user, not the app's service principal.
+2. **Environment variables**:
    - `DATABRICKS_WAREHOUSE_ID` = your warehouse ID
    - `GENIE_SPACE_ID` = your Genie space ID
    - `OTEL_CATALOG` = `otel` (or override)
    - `OTEL_SCHEMA` = `kubernetes_otel_silver` (or override)
-4. Save and redeploy if prompted.
+3. Save and redeploy if prompted.
 
-### Granting the App SP Unity Catalog access
+### On-behalf-of-user (OBO) authorization
 
-The app runs as its own service principal. It needs:
+The app reads data **as the signed-in user**, not as its own service principal. Every
+UC-governed call (SQL Statement Execution, Genie Conversation API) uses the token
+Databricks Apps forwards for the current user via the `x-forwarded-access-token`
+header, so query results are governed by that user's own Unity Catalog grants.
 
-- `USE CATALOG` on the catalog
-- `USE SCHEMA` on the silver schema
-- `SELECT` on the silver schema (UC inherits this to all current and future tables in the schema)
+This requires two things:
 
-The bundle flow handles this via `scripts/grant-app-permissions.sh`. For manual deploys, run the same SQL directly:
+1. **User authorization scopes are declared in the bundle.** `bundle/resources/app.yml`
+   sets `user_api_scopes: [sql, dashboards.genie]` on the app resource — this is what
+   allows the app to request the user's forwarded token for those two APIs at all.
+2. **A workspace admin must enable the user authorization preview once, for the
+   workspace** (it's a Public Preview feature and isn't toggled by the bundle deploy
+   itself). After enabling it, **stop and start the app** so the scopes take effect —
+   you can confirm they're present under Compute → Apps → `<app>` → Edit →
+   **User authorization**. Each user consents to the scopes the first time they open
+   the app. Until all of this is done, requests fail with a "missing
+   x-forwarded-access-token" error (see `server/config.py::get_user_token`).
 
-```sql
-GRANT USE CATALOG ON CATALOG `otel` TO `<app-service-principal>`;
-GRANT USE SCHEMA  ON SCHEMA  `otel`.`kubernetes_otel_silver` TO `<app-service-principal>`;
-GRANT SELECT      ON SCHEMA  `otel`.`kubernetes_otel_silver` TO `<app-service-principal>`;
-```
+### Who needs what permissions
 
-SQL Warehouse and Genie Space permissions are wired through the App's **resources** (handled by either deploy path), so they don't need separate grants.
+Because every data-plane call runs as the viewing user, the app's own service principal
+needs **no grants at all** — the bundle grants it nothing, and the app declares no
+warehouse or Genie resources. Instead, each user (or group) who will view the app needs
+all three of the following:
+
+1. **UC grants on the OTel data:**
+
+   ```sql
+   GRANT USE CATALOG ON CATALOG `otel` TO `<user_or_group>`;
+   GRANT USE SCHEMA  ON SCHEMA  `otel`.`kubernetes_otel_silver` TO `<user_or_group>`;
+   GRANT SELECT      ON SCHEMA  `otel`.`kubernetes_otel_silver` TO `<user_or_group>`;
+   ```
+
+2. **`CAN USE` on the SQL warehouse** the app queries (the one the bundle creates).
+   Grant it in the UI (Compute → SQL warehouses → `<warehouse>` → Permissions), or
+   declare it on the warehouse resource in `bundle/resources/warehouse.yml`:
+
+   ```yaml
+   permissions:
+     - level: CAN_USE
+       group_name: <viewers-group>
+   ```
+
+3. **`CAN RUN` on the Genie space** (share it from the Genie space UI). The Genie
+   Conversation API also requires the caller to have access to a pro or serverless SQL
+   warehouse, which the warehouse grant above covers.
+
+A user missing any of these will see permission errors from the corresponding
+dashboard or Genie calls — that's OBO working as intended: the app can never show
+someone data they couldn't query themselves.
+
+Locally (outside Databricks Apps), there's no forwarded-token header, so the app falls
+back to your own CLI-profile/token-based credentials — effectively already "as you".
 
 ---
 
@@ -143,7 +183,7 @@ bundle/app/
 ├── requirements.txt             # Pinned deps for the deployed app runtime
 ├── .env.example                 # Local env template
 ├── server/
-│   ├── config.py                # Dual-mode auth (CLI profile / SP)
+│   ├── config.py                # OBO user token resolution (CLI profile fallback locally)
 │   ├── sql.py                   # SQL Warehouse Statement Execution helper
 │   ├── genie.py                 # Genie Conversation API client
 │   └── routes/

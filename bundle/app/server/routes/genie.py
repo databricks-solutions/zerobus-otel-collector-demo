@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from .. import genie
+from ..config import get_user_token
 
 router = APIRouter(prefix="/api/genie", tags=["genie"])
 
@@ -18,23 +19,25 @@ class ConversationRequest(BaseModel):
 
 
 @router.post("/conversation")
-async def post_conversation(body: ConversationRequest):
+async def post_conversation(body: ConversationRequest, request: Request):
+    token = get_user_token(request)
     if not body.question or not body.question.strip():
         raise HTTPException(status_code=400, detail="question is required")
     try:
         if body.conversation_id:
-            res = await genie.post_message(body.conversation_id, body.question)
+            res = await genie.post_message(body.conversation_id, body.question, token=token)
         else:
-            res = await genie.start_conversation(body.question)
+            res = await genie.start_conversation(body.question, token=token)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
     return res
 
 
 @router.get("/message/{conversation_id}/{message_id}")
-async def get_message(conversation_id: str, message_id: str):
+async def get_message(conversation_id: str, message_id: str, request: Request):
+    token = get_user_token(request)
     try:
-        message = await genie.get_message(conversation_id, message_id)
+        message = await genie.get_message(conversation_id, message_id, token=token)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
 
@@ -55,7 +58,7 @@ async def get_message(conversation_id: str, message_id: str):
     ):
         try:
             qr = await genie.get_query_result(
-                conversation_id, message_id, shaped["attachment_id"]
+                conversation_id, message_id, shaped["attachment_id"], token=token
             )
             shaped_qr = genie.shape_query_result(qr)
             # If query is still running, surface a softer status to the FE.

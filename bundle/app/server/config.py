@@ -1,11 +1,18 @@
 """
-Dual-mode auth + config helpers.
+Auth + config helpers.
+
+UC-governed calls (SQL, Genie) use `get_user_token()`, which returns the
+signed-in user's own forwarded token (on-behalf-of-user / OBO auth) when
+deployed as a Databricks App. The service-principal-based WorkspaceClient
+below is only used locally (dev auth chain) and as the source of that
+fallback token when running outside Databricks Apps.
 
 - Local dev: uses Databricks CLI profile via WorkspaceClient(profile=...)
   Honors DATABRICKS_PROFILE env var if set, otherwise the SDK's default chain
   (which picks up DATABRICKS_HOST + DATABRICKS_TOKEN env vars too).
-- Deployed: uses auto-injected service principal credentials. The presence of
-  DATABRICKS_APP_NAME (set by the Apps runtime) flags this mode.
+- Deployed: the SDK auto-picks-up injected service principal credentials, but
+  those are no longer used for data queries — see `get_user_token()`. The
+  presence of DATABRICKS_APP_NAME (set by the Apps runtime) flags this mode.
 """
 
 from __future__ import annotations
@@ -16,6 +23,7 @@ from typing import Optional
 
 from databricks.sdk import WorkspaceClient
 from dotenv import load_dotenv
+from fastapi import HTTPException, Request
 
 # Load .env file if present (local dev convenience).
 load_dotenv()
@@ -70,6 +78,34 @@ def get_oauth_token() -> str:
     if auth_headers and "Authorization" in auth_headers:
         return auth_headers["Authorization"].replace("Bearer ", "")
     raise RuntimeError("Unable to acquire Databricks OAuth token")
+
+
+def get_user_token(request: Request) -> str:
+    """Return the bearer token to use for UC-governed calls on this request.
+
+    Deployed apps: Databricks Apps forwards the signed-in user's own downscoped
+    token via the x-forwarded-access-token header once user authorization (OBO)
+    is enabled for the app with the 'sql' and 'dashboards.genie' scopes. We use
+    that token so SQL/Genie calls are governed by the viewing user's own UC
+    grants rather than the app's service principal.
+
+    Local dev: that header doesn't exist, so fall back to the developer's own
+    CLI-profile/token-based credentials (already effectively "as the user").
+    """
+    forwarded = request.headers.get("x-forwarded-access-token")
+    if forwarded:
+        return forwarded
+    if IS_DATABRICKS_APP:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Missing x-forwarded-access-token header. Ensure user authorization "
+                "is enabled for this app (with the 'sql' and 'dashboards.genie' "
+                "scopes) in Compute > Apps > <app> > Edit, and that the app has been "
+                "restarted since enabling it."
+            ),
+        )
+    return get_oauth_token()
 
 
 # --- Required app config -----------------------------------------------------

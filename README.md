@@ -48,7 +48,7 @@ One-time UI setup (create the Genie Space the assistant queries):
 2. Add tables: `logs_flattened`, `logs_errors`, `bin_packing_pod_efficiency`, `bin_packing_node_summary`
 3. Copy the Space ID from the URL
 
-Then a single script builds the frontend, deploys silver pipelines + the app, and applies all the grants:
+Then a single script builds the frontend and deploys the silver pipelines + the app:
 
 ```sh
 cd ../bundle
@@ -77,10 +77,12 @@ The script:
 - Runs `databricks bundle deploy` — creates the silver schema, the silver
   pipelines, and the app
 - Kicks off the logs and metrics silver pipelines
-- App-side grants come from the declarative `resources` in
-  `bundle/resources/app.yml` (CAN_USE on the warehouse, CAN_RUN on the Genie
-  space, SELECT on each bronze table) and `bundle/resources/schema.yml`
-  (USE_SCHEMA + SELECT at the silver schema level)
+- There are no service-principal grants to apply: the app uses
+  on-behalf-of-user authorization (`user_api_scopes` in
+  `bundle/resources/app.yml`), so it queries data as whoever is signed in.
+  Each viewer needs their own SELECT on the silver schema, CAN_USE on the
+  warehouse, and CAN_RUN on the Genie space — see `bundle/app/README.md`
+  for the exact grants
 
 > **Tip:** to avoid passing `--var` flags every time, create `bundle.local.yml` (gitignored) with target-specific defaults. Or just save the full command in a shell alias.
 
@@ -116,10 +118,10 @@ bundle/                  # Declarative Automation Bundle
   ├── app/               # FastAPI backend + React/Vite/TS frontend
   ├── resources/         # bundle resource definitions
   │   ├── job.yml        # init job that creates the bronze tables in UC
-  │   ├── schema.yml     # silver schema + app SP grants
+  │   ├── schema.yml     # silver schema
   │   ├── logs_pipeline.yml
   │   ├── metrics_pipeline.yml
-  │   └── app.yml        # the Databricks App + declarative resource grants
+  │   └── app.yml        # the Databricks App + OBO user_api_scopes
   └── src/               # silver pipeline notebooks + the create_otel_tables init notebook
 tf/                      # Terraform: SP + bronze tables + OTel Collector helm release
 blog/                    # blog post content

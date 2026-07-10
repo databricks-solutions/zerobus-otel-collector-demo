@@ -17,7 +17,7 @@ from typing import Any, Optional
 
 import httpx
 
-from .config import get_genie_space_id, get_oauth_token, get_workspace_host
+from .config import get_genie_space_id, get_workspace_host
 
 GENIE_BASE = "/api/2.0/genie/spaces"
 
@@ -31,19 +31,19 @@ def _require_space_id() -> str:
     return space_id
 
 
-def _headers() -> dict:
+def _headers(token: str) -> dict:
     return {
-        "Authorization": f"Bearer {get_oauth_token()}",
+        "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
     }
 
 
-async def start_conversation(question: str) -> dict:
+async def start_conversation(question: str, *, token: str) -> dict:
     """Start a new Genie conversation. Returns {conversation_id, message_id}."""
     space_id = _require_space_id()
     url = f"{get_workspace_host()}{GENIE_BASE}/{space_id}/start-conversation"
     async with httpx.AsyncClient(timeout=60.0) as client:
-        resp = await client.post(url, headers=_headers(), json={"content": question})
+        resp = await client.post(url, headers=_headers(token), json={"content": question})
         if resp.status_code >= 400:
             raise RuntimeError(f"Genie start-conversation error ({resp.status_code}): {resp.text}")
         payload = resp.json()
@@ -56,7 +56,7 @@ async def start_conversation(question: str) -> dict:
         }
 
 
-async def post_message(conversation_id: str, question: str) -> dict:
+async def post_message(conversation_id: str, question: str, *, token: str) -> dict:
     """Append a message to an existing Genie conversation."""
     space_id = _require_space_id()
     url = (
@@ -64,7 +64,7 @@ async def post_message(conversation_id: str, question: str) -> dict:
         f"/conversations/{conversation_id}/messages"
     )
     async with httpx.AsyncClient(timeout=60.0) as client:
-        resp = await client.post(url, headers=_headers(), json={"content": question})
+        resp = await client.post(url, headers=_headers(token), json={"content": question})
         if resp.status_code >= 400:
             raise RuntimeError(f"Genie post-message error ({resp.status_code}): {resp.text}")
         payload = resp.json()
@@ -74,7 +74,7 @@ async def post_message(conversation_id: str, question: str) -> dict:
         }
 
 
-async def get_message(conversation_id: str, message_id: str) -> dict:
+async def get_message(conversation_id: str, message_id: str, *, token: str) -> dict:
     """Fetch the current state of a Genie message (status + attachments)."""
     space_id = _require_space_id()
     url = (
@@ -82,14 +82,14 @@ async def get_message(conversation_id: str, message_id: str) -> dict:
         f"/conversations/{conversation_id}/messages/{message_id}"
     )
     async with httpx.AsyncClient(timeout=60.0) as client:
-        resp = await client.get(url, headers=_headers())
+        resp = await client.get(url, headers=_headers(token))
         if resp.status_code >= 400:
             raise RuntimeError(f"Genie get-message error ({resp.status_code}): {resp.text}")
         return resp.json()
 
 
 async def get_query_result(
-    conversation_id: str, message_id: str, attachment_id: str
+    conversation_id: str, message_id: str, attachment_id: str, *, token: str
 ) -> dict:
     """Fetch the SQL execution result for a Genie query attachment."""
     space_id = _require_space_id()
@@ -99,7 +99,7 @@ async def get_query_result(
         f"/attachments/{attachment_id}/query-result"
     )
     async with httpx.AsyncClient(timeout=60.0) as client:
-        resp = await client.get(url, headers=_headers())
+        resp = await client.get(url, headers=_headers(token))
         if resp.status_code >= 400:
             raise RuntimeError(
                 f"Genie query-result error ({resp.status_code}): {resp.text}"

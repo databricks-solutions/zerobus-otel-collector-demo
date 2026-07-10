@@ -12,7 +12,7 @@ from typing import Any, Optional
 
 import httpx
 
-from .config import get_oauth_token, get_warehouse_id, get_workspace_host
+from .config import get_warehouse_id, get_workspace_host
 
 API_PATH = "/api/2.0/sql/statements"
 POLL_INTERVAL_SEC = 1.0
@@ -65,13 +65,17 @@ async def execute_statement(
     sql: str,
     parameters: Optional[list[dict]] = None,
     *,
+    token: str,
     catalog: Optional[str] = None,
     schema: Optional[str] = None,
     row_limit: int = 10_000,
 ) -> dict:
-    """Run a SQL statement on the configured warehouse and return shaped result."""
+    """Run a SQL statement on the configured warehouse and return shaped result.
+
+    `token` is the bearer token to authenticate with — see
+    `server.config.get_user_token` for how callers should obtain it.
+    """
     host = get_workspace_host()
-    token = get_oauth_token()
     warehouse_id = get_warehouse_id()
     url = f"{host}{API_PATH}"
 

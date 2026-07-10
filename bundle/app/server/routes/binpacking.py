@@ -12,9 +12,9 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 
-from ..config import fq
+from ..config import fq, get_user_token
 from ..sql import execute_statement, to_params
 
 router = APIRouter(prefix="/api/binpacking", tags=["binpacking"])
@@ -122,11 +122,13 @@ def _windowed_pod_efficiency_cte(namespace: Optional[str]) -> tuple[str, dict]:
 
 @router.get("/summary")
 async def summary(
+    request: Request,
     from_: Optional[str] = Query(None, alias="from"),
     to: Optional[str] = Query(None),
     namespace: Optional[str] = Query(None),
 ):
     """Cluster-wide bin-packing KPIs over the chosen time window."""
+    token = get_user_token(request)
     from_dt, to_dt = _resolve_window(from_, to)
     cte, ns_params = _windowed_pod_efficiency_cte(namespace)
     sql = f"""
@@ -145,7 +147,7 @@ async def summary(
     """
     params = {**ns_params, "from_ts": from_dt.isoformat(), "to_ts": to_dt.isoformat()}
     try:
-        result = await execute_statement(sql, parameters=to_params(params))
+        result = await execute_statement(sql, parameters=to_params(params), token=token)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
     row = result["rows"][0] if result["rows"] else {}
@@ -183,11 +185,13 @@ async def summary(
 
 @router.get("/node-utilization")
 async def node_utilization(
+    request: Request,
     from_: Optional[str] = Query(None, alias="from"),
     to: Optional[str] = Query(None),
     namespace: Optional[str] = Query(None),
 ):
     """Per-node summary over the chosen window. Capacity is lifetime baseline (rarely changes)."""
+    token = get_user_token(request)
     from_dt, to_dt = _resolve_window(from_, to)
     cte, ns_params = _windowed_pod_efficiency_cte(namespace)
     sql = f"""
@@ -230,7 +234,7 @@ async def node_utilization(
     """
     params = {**ns_params, "from_ts": from_dt.isoformat(), "to_ts": to_dt.isoformat()}
     try:
-        result = await execute_statement(sql, parameters=to_params(params))
+        result = await execute_statement(sql, parameters=to_params(params), token=token)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
     return {"rows": result["rows"]}
@@ -238,6 +242,7 @@ async def node_utilization(
 
 @router.get("/over-provisioned")
 async def over_provisioned(
+    request: Request,
     from_: Optional[str] = Query(None, alias="from"),
     to: Optional[str] = Query(None),
     limit: int = Query(20, ge=1, le=200),
@@ -245,6 +250,7 @@ async def over_provisioned(
     resource: str = Query("cpu", pattern="^(cpu|memory)$"),
 ):
     """Top pods with the largest gap between request and p95 actual usage in the window."""
+    token = get_user_token(request)
     from_dt, to_dt = _resolve_window(from_, to)
     cte, ns_params = _windowed_pod_efficiency_cte(namespace)
 
@@ -278,7 +284,7 @@ async def over_provisioned(
     """
     params = {**ns_params, "from_ts": from_dt.isoformat(), "to_ts": to_dt.isoformat()}
     try:
-        result = await execute_statement(sql, parameters=to_params(params))
+        result = await execute_statement(sql, parameters=to_params(params), token=token)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
     return {"rows": result["rows"], "resource": resource}
@@ -286,12 +292,14 @@ async def over_provisioned(
 
 @router.get("/consolidation")
 async def consolidation(
+    request: Request,
     from_: Optional[str] = Query(None, alias="from"),
     to: Optional[str] = Query(None),
     cpu_threshold_pct: float = Query(40.0, ge=0, le=100),
     memory_threshold_pct: float = Query(50.0, ge=0, le=100),
 ):
     """Nodes whose p95 utilization in the chosen window stayed below thresholds."""
+    token = get_user_token(request)
     from_dt, to_dt = _resolve_window(from_, to)
     cte, _ = _windowed_pod_efficiency_cte(None)
     sql = f"""
@@ -343,7 +351,7 @@ async def consolidation(
         "mem_th": memory_threshold_pct,
     }
     try:
-        result = await execute_statement(sql, parameters=to_params(params))
+        result = await execute_statement(sql, parameters=to_params(params), token=token)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
     return {
@@ -355,12 +363,14 @@ async def consolidation(
 
 @router.get("/pod-efficiency")
 async def pod_efficiency(
+    request: Request,
     from_: Optional[str] = Query(None, alias="from"),
     to: Optional[str] = Query(None),
     namespace: Optional[str] = Query(None),
     limit: int = Query(200, ge=1, le=1000),
 ):
     """Full per-pod efficiency table over the window (for the leaderboard / scatter view)."""
+    token = get_user_token(request)
     from_dt, to_dt = _resolve_window(from_, to)
     cte, ns_params = _windowed_pod_efficiency_cte(namespace)
     sql = f"""
@@ -385,7 +395,7 @@ async def pod_efficiency(
     """
     params = {**ns_params, "from_ts": from_dt.isoformat(), "to_ts": to_dt.isoformat()}
     try:
-        result = await execute_statement(sql, parameters=to_params(params))
+        result = await execute_statement(sql, parameters=to_params(params), token=token)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
     return {"rows": result["rows"]}

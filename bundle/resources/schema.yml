@@ -3,8 +3,3 @@ resources:
     dest_schema:
       name: ${var.dest_schema}
       catalog_name: ${var.dest_catalog}
-      grants:
-        - principal: ${resources.apps.otel_observability.service_principal_client_id}
-          privileges:
-            - SELECT
-            - USE_SCHEMA
