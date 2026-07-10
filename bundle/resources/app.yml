@@ -6,6 +6,14 @@ resources:
       source_code_path: ${workspace.file_path}/app
       lifecycle:
         started: true
+      # On-behalf-of-user (OBO) authorization scopes. These let the app forward the
+      # signed-in user's own downscoped token (via the x-forwarded-access-token
+      # header) to the SQL Statement Execution API and the Genie Conversation API,
+      # so data access is governed by the viewing user's own UC grants instead of
+      # the app's service principal.
+      user_api_scopes:
+        - sql
+        - dashboards.genie
       config:
         command: ['uvicorn', 'app:app', '--host', '0.0.0.0', '--port', '8000']
         env:
@@ -17,43 +25,3 @@ resources:
             value: ${resources.schemas.dest_schema.catalog_name}
           - name: 'OTEL_SCHEMA'
             value: ${resources.schemas.dest_schema.name}
-
-      resources:
-        - name: warehouse
-          description: SQL warehouse used for dashboard queries
-          sql_warehouse:
-            id: ${resources.sql_warehouses.warehouse.id}
-            permission: CAN_USE
-
-        - name: genie_space
-          description: Genie space for the in-app assistant
-          genie_space:
-            name: ${var.app_name}_genie
-            space_id: ${var.genie_space_id}
-            permission: CAN_RUN
-
-        # The app queries these tables via Genie. The dest_schema resource is used to fetch the catalog name to enforce
-        # that these tables must be in the same catalog as the silver tables. This is because the below resources will
-        # implicitly grant USE_CATALOG on the catalog containing the bronze tables. Since the silver schema is created
-        # with no tables in this bundle (and schemas nor catalogs are currently supported as app resources) - the below
-        # table resources ALSO grant some of the access to the silver tables that are created by the SDP in this bundle.
-        #
-        # If the bronze tables are located in a different catalog in your deployment, then you must deploy the app
-        # separately.
-        - name: metrics_bronze
-          uc_securable:
-            securable_full_name: ${resources.schemas.dest_schema.catalog_name}.${var.source_schema}.${var.table_prefix}_otel_metrics
-            securable_type: TABLE
-            permission: SELECT
-
-        - name: logs_bronze
-          uc_securable:
-            securable_full_name: ${resources.schemas.dest_schema.catalog_name}.${var.source_schema}.${var.table_prefix}_otel_logs
-            securable_type: TABLE
-            permission: SELECT
-
-        - name: spans_bronze
-          uc_securable:
-            securable_full_name: ${resources.schemas.dest_schema.catalog_name}.${var.source_schema}.${var.table_prefix}_otel_spans
-            securable_type: TABLE
-            permission: SELECT

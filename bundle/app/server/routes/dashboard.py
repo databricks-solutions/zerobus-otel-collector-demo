@@ -5,9 +5,9 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 
-from ..config import fq
+from ..config import fq, get_user_token
 from ..sql import execute_statement, to_params
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
@@ -57,14 +57,15 @@ def _bucket_seconds(window: timedelta) -> int:
 
 
 @router.get("/namespaces")
-async def list_namespaces():
+async def list_namespaces(request: Request):
+    token = get_user_token(request)
     sql = (
         f"SELECT DISTINCT namespace FROM {fq('logs_flattened')} "
         f"WHERE namespace IS NOT NULL "
         f"ORDER BY namespace"
     )
     try:
-        result = await execute_statement(sql, row_limit=1000)
+        result = await execute_statement(sql, token=token, row_limit=1000)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
     namespaces = [r["namespace"] for r in result["rows"] if r.get("namespace")]
@@ -73,10 +74,12 @@ async def list_namespaces():
 
 @router.get("/summary")
 async def summary(
+    request: Request,
     from_: Optional[str] = Query(None, alias="from"),
     to: Optional[str] = Query(None),
     namespace: Optional[str] = Query(None),
 ):
+    token = get_user_token(request)
     from_dt, to_dt = _resolve_window(from_, to)
 
     where = "log_timestamp >= :from_ts AND log_timestamp < :to_ts"
@@ -97,7 +100,7 @@ async def summary(
         WHERE {where}
     """
     try:
-        result = await execute_statement(sql, parameters=to_params(params))
+        result = await execute_statement(sql, parameters=to_params(params), token=token)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
 
@@ -127,10 +130,12 @@ async def summary(
 
 @router.get("/log-volume")
 async def log_volume(
+    request: Request,
     from_: Optional[str] = Query(None, alias="from"),
     to: Optional[str] = Query(None),
     namespace: Optional[str] = Query(None),
 ):
+    token = get_user_token(request)
     from_dt, to_dt = _resolve_window(from_, to)
     bucket_sec = _bucket_seconds(to_dt - from_dt)
 
@@ -158,7 +163,9 @@ async def log_volume(
         ORDER BY bucket
     """
     try:
-        result = await execute_statement(sql, parameters=to_params(params), row_limit=50_000)
+        result = await execute_statement(
+            sql, parameters=to_params(params), token=token, row_limit=50_000
+        )
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
 
@@ -186,9 +193,11 @@ async def log_volume(
 
 @router.get("/recent-errors")
 async def recent_errors(
+    request: Request,
     limit: int = Query(50, ge=1, le=500),
     namespace: Optional[str] = Query(None),
 ):
+    token = get_user_token(request)
     where_clauses = []
     params: dict = {}
     if namespace:
@@ -218,7 +227,7 @@ async def recent_errors(
         LIMIT {int(limit)}
     """
     try:
-        result = await execute_statement(sql, parameters=to_params(params))
+        result = await execute_statement(sql, parameters=to_params(params), token=token)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
     return {"rows": result["rows"], "columns": result["columns"]}
@@ -226,11 +235,13 @@ async def recent_errors(
 
 @router.get("/noisy-pods")
 async def noisy_pods(
+    request: Request,
     from_: Optional[str] = Query(None, alias="from"),
     to: Optional[str] = Query(None),
     limit: int = Query(20, ge=1, le=200),
     namespace: Optional[str] = Query(None),
 ):
+    token = get_user_token(request)
     from_dt, to_dt = _resolve_window(from_, to)
     where = "log_timestamp >= :from_ts AND log_timestamp < :to_ts"
     params: dict = {
@@ -256,7 +267,7 @@ async def noisy_pods(
         LIMIT {int(limit)}
     """
     try:
-        result = await execute_statement(sql, parameters=to_params(params))
+        result = await execute_statement(sql, parameters=to_params(params), token=token)
     except Exception as e:
         raise HTTPException(status_code=502, detail=str(e))
 
