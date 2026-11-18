@@ -130,6 +130,7 @@ resource "helm_release" "otel_demo" {
   name             = "otel-demo"
   repository       = "https://open-telemetry.github.io/opentelemetry-helm-charts"
   chart            = "opentelemetry-demo"
+  version          = "0.40.9" # demo app 2.2.0
   namespace        = "otel-demo"
   create_namespace = true
   wait             = true
@@ -145,6 +146,17 @@ resource "helm_release" "otel_demo" {
     {
       name  = "default.envOverrides[0].value"
       value = "otel-collector-opentelemetry-collector.${helm_release.otel_collector.namespace}.svc.cluster.local"
+    },
+    # Mitigate CVE-2026-114938 (Java4Shell) in the JVM services (ad, fraud-detection, kafka) by
+    # disabling the vulnerable Base64 JIT intrinsic. JDK_JAVA_OPTIONS rather than JAVA_TOOL_OPTIONS,
+    # since the images already use the latter to load the OTel Java agent. No-op for non-JVM services.
+    {
+      name  = "default.envOverrides[1].name"
+      value = "JDK_JAVA_OPTIONS"
+    },
+    {
+      name  = "default.envOverrides[1].value"
+      value = "-XX:-UseBASE64Intrinsics"
     },
     # Disable bundled collector — we use our own
     {
